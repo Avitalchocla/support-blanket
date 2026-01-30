@@ -3,11 +3,12 @@ import numpy as np
 import matplotlib.pyplot as plt
 from PIL import Image
 import os
+from datetime import date
+import io
 
-# הגדרת דף
 st.set_page_config(page_title="שמיכת תמיכה", layout="wide")
 
-# נתוני קטגוריות
+# --- נתוני קטגוריות ---
 CLUSTERS = {
     "קוגניטיבי לימודי שפתי": ["הישגים לימודיים", "יכולת מילולית הבעה והפשטה", "הבנה וחשיבה"],
     "עצמאות והתארגנות": ["למידה עצמאית", "תלמידאות ציוד התארגנות", "ניהול עצמי"],
@@ -24,7 +25,7 @@ VOTER_CONFIGS = {
 
 if 'db' not in st.session_state: st.session_state.db = {}
 
-def draw_blanket(data_dict, size=(5.4, 5.4)):
+def draw_blanket(data_dict, chair_name="", v_date="", student_name="", size=(5.4, 5.4)):
     bg_path = os.path.join(os.path.dirname(__file__), "blanket_base.png")
     if not os.path.exists(bg_path): return None
     
@@ -34,7 +35,13 @@ def draw_blanket(data_dict, size=(5.4, 5.4)):
     ax.imshow(img)
     ax.axis('off')
 
-    # כיול נקודות לפי הקוד המקורי שלך
+    # כותרת על גבי התמונה (תאריך, יו"ר ושם תלמיד אם קיים)
+    title_text = f"תאריך: {v_date} | יו\"ר: {chair_name}"
+    if student_name:
+        title_text = f"תלמיד/ה: {student_name} | " + title_text
+    
+    ax.set_title(title_text, fontsize=10, pad=10, loc='center', fontweight='bold')
+
     center_x, center_y = (w / 2) - (w * 0.017), (h / 2) + (h * 0.010)
     max_r = h * 0.308
     
@@ -54,13 +61,22 @@ def draw_blanket(data_dict, size=(5.4, 5.4)):
         ax.plot(x, y, color=VOTER_CONFIGS[name], linewidth=2, marker='o', markersize=3)
     return fig
 
-# בחירת תפקיד
-role = st.selectbox("תפקיד נוכחי:", ["צופה", "יו\"ר", "נ. פיקוח", "נ. רשות", "נציג שפ\"ח", "נ. הורים"])
+# --- ממשק עליון ---
+col_role, col_info = st.columns([1, 2])
 
+with col_info:
+    c1, c2 = st.columns(2)
+    chair_name = c1.text_input("שם היו\"ר:", key="chair_name")
+    v_date = c2.date_input("תאריך הוועדה:", value=date.today())
+
+with col_role:
+    role = st.selectbox("תפקיד נוכחי:", ["צופה", "יו\"ר", "נ. פיקוח", "נ. רשות", "נציג שפ\"ח", "נ. הורים"])
+
+st.divider()
+
+# --- הזנה ותצוגה ---
 if role != "צופה":
-    # חלוקה לעמודת הזנה (ימין) ועמודת תצוגה מקדימה (שמאל)
     col_input, col_preview = st.columns([1.2, 2])
-    
     with col_input:
         st.markdown(f"### ✍️ הזנה: {role}")
         current_values = []
@@ -69,30 +85,37 @@ if role != "צופה":
                 for p in params:
                     val = st.select_slider(f"{p}:", options=[1, 2, 3, 4], key=f"{role}_{p}")
                     current_values.append(val)
-        
-        st.write("")
         if st.button("🔄 עדכן בלוח המשותף", use_container_width=True):
             st.session_state.db[role] = current_values
-            st.success("הנתונים נשלחו ללוח המשותף!")
+            st.success("עודכן!")
 
     with col_preview:
-        st.markdown("<center><h3>🔍 תצוגה מקדימה אישית</h3></center>", unsafe_allow_html=True)
-        preview_fig = draw_blanket({role: current_values})
-        if preview_fig:
-            st.pyplot(preview_fig)
+        preview_fig = draw_blanket({role: current_values}, chair_name, v_date)
+        if preview_fig: st.pyplot(preview_fig)
 
-# --- לוח וועדה משותף ---
+# --- לוח וועדה משותף ושמירה למחשב ---
 if st.session_state.db:
-    st.markdown("<br><hr>", unsafe_allow_html=True)
-    # מירכוז השמיכה המשותפת
+    st.divider()
     _, center_col, _ = st.columns([1, 2, 1])
     with center_col:
         st.markdown("<center><h2>📊 לוח הוועדה המשותף</h2></center>", unsafe_allow_html=True)
-        main_fig = draw_blanket(st.session_state.db)
+        main_fig = draw_blanket(st.session_state.db, chair_name, v_date)
         if main_fig:
             st.pyplot(main_fig)
-
-if role == "יו\"ר":
-    st.sidebar.markdown("---")
-    if st.sidebar.button("📢 הפץ תמונה סופית"):
-        st.balloons()
+            
+            # --- מנגנון הורדה למחשב (פרטי) ---
+            st.write("---")
+            st.subheader("💾 שמירה למחשב האישי")
+            student_name_input = st.text_input("הזן שם תלמיד (לשמירה מקומית בלבד):")
+            
+            if student_name_input:
+                # יצירת גרף חדש הכולל את שם התלמיד רק עבור הקובץ להורדה
+                final_fig = draw_blanket(st.session_state.db, chair_name, v_date, student_name_input)
+                buf = io.BytesIO()
+                final_fig.savefig(buf, format="png", bbox_inches='tight')
+                st.download_button(
+                    label="📥 הורד תמונת וועדה למחשב",
+                    data=buf.getvalue(),
+                    file_name=f"committee_{student_name_input}_{v_date}.png",
+                    mime="image/png"
+                )
