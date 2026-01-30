@@ -19,9 +19,13 @@ CLUSTERS = {
     "תפקוד רגשי": ["ויסות רגשי", "לשתף ולהעזר באחר", "הכלת תסכול"]
 }
 
+# הגדרת תפקידים וצבעים (כולל הסבר למקרא)
 VOTER_CONFIGS = {
-    "יו\"ר": "#2c3e50", "נ. פיקוח": "#FF0000", 
-    "נ. רשות": "#8e44ad", "נציג שפ\"ח": "#27ae60", "נ. הורים": "#FF00FF"
+    "יו\"ר": "#2c3e50",       # כחול כהה/אפור
+    "נ. פיקוח": "#FF0000",   # אדום
+    "נ. רשות": "#8e44ad",    # סגול
+    "נציג שפ\"ח": "#27ae60", # ירוק
+    "נ. הורים": "#FF00FF"    # ורוד/מג'נטה
 }
 
 if 'db' not in st.session_state: st.session_state.db = {}
@@ -36,14 +40,10 @@ def draw_blanket(data_dict, chair_name="", v_date=None, student_name="", size=(5
     ax.imshow(img)
     ax.axis('off')
 
-    # סידור תאריך בפורמט DD/MM/YYYY
     formatted_date = v_date.strftime("%d/%m/%Y") if v_date else ""
-    
-    # תיקון עברית וכיווניות לכותרת הגרף
     rev_chair = chair_name[::-1]
     rev_student = student_name[::-1]
     
-    # בניית הכותרת עם סימני פיסוק מתוקנים לתצוגה בגרף
     title_text = f"{formatted_date}  |  {rev_chair} :\"ר'וי"
     if student_name:
         title_text = f"{rev_student} :ה/דימלת  |  " + title_text
@@ -65,8 +65,13 @@ def draw_blanket(data_dict, chair_name="", v_date=None, student_name="", size=(5
         x = center_x + radii * np.cos(angles)
         y = center_y + radii * np.sin(angles)
         x = np.append(x, x[0]); y = np.append(y, y[0])
-        ax.fill(x, y, color=VOTER_CONFIGS[name], alpha=0.3)
+        ax.fill(x, y, color=VOTER_CONFIGS[name], alpha=0.3, label=name[::-1]) # הוספת תווית הפוכה למקרא
         ax.plot(x, y, color=VOTER_CONFIGS[name], linewidth=2, marker='o', markersize=3)
+    
+    # הוספת מקרא צבעים בתחתית הגרף
+    if data_dict:
+        ax.legend(loc='upper center', bbox_to_anchor=(0.5, -0.05), ncol=3, fontsize=8)
+        
     return fig
 
 # --- ממשק משתמש עליון ---
@@ -81,6 +86,13 @@ with col_role:
 
 st.divider()
 
+# --- תצוגת מקרא צבעים קבועה בדף (Side Info) ---
+with st.sidebar:
+    st.markdown("### 🎨 מקרא צבעי הוועדה")
+    for member, color in VOTER_CONFIGS.items():
+        st.markdown(f"<span style='color:{color}; font-weight:bold;'>■</span> {member}", unsafe_allow_html=True)
+
+# --- לוגיקת מצבים ---
 if role != "צופה":
     col_input, col_preview = st.columns([1.2, 2])
     with col_input:
@@ -100,20 +112,33 @@ if role != "צופה":
         preview_fig = draw_blanket({role: current_values}, chair_name_input, v_date_input)
         if preview_fig: st.pyplot(preview_fig)
 
-if st.session_state.db:
+else: # מצב צופה
+    if not st.session_state.db:
+        st.info("💡 ממתין לעדכון נתונים מחברי הוועדה... ברגע שמישהו ילחץ על 'עדכן', השמיכה תופיע כאן.")
+    else:
+        _, center_col, _ = st.columns([1, 2, 1])
+        with center_col:
+            st.markdown("<center><h2>📊 לוח הוועדה המשותף</h2></center>", unsafe_allow_html=True)
+            main_fig = draw_blanket(st.session_state.db, chair_name_input, v_date_input)
+            if main_fig: st.pyplot(main_fig)
+
+# הצגת הלוח המשותף גם למזינים (בתחתית)
+if role != "צופה" and st.session_state.db:
     st.divider()
     _, center_col, _ = st.columns([1, 2, 1])
     with center_col:
-        st.markdown("<center><h2>📊 לוח הוועדה המשותף</h2></center>", unsafe_allow_html=True)
+        st.markdown("<center><h3>📊 מבט על הלוח המשותף</h3></center>", unsafe_allow_html=True)
         main_fig = draw_blanket(st.session_state.db, chair_name_input, v_date_input)
-        if main_fig:
-            st.pyplot(main_fig)
-            st.write("---")
-            st.subheader("💾 שמירה למחשב האישי")
-            student_name_input = st.text_input("הזן שם תלמיד (לשמירה מקומית בלבד):")
-            if student_name_input:
-                final_fig = draw_blanket(st.session_state.db, chair_name_input, v_date_input, student_name_input)
-                buf = io.BytesIO()
-                final_fig.savefig(buf, format="png", bbox_inches='tight')
-                st.download_button(label="📥 הורד תמונת וועדה", data=buf.getvalue(), 
-                                 file_name=f"committee_{student_name_input}_{v_date_input.strftime('%d_%m_%Y')}.png", mime="image/png")
+        if main_fig: st.pyplot(main_fig)
+
+# אפשרות שמירה
+if st.session_state.db:
+    st.write("---")
+    st.subheader("💾 שמירה למחשב האישי")
+    student_name_input = st.text_input("הזן שם תלמיד (לשמירה מקומית בלבד):")
+    if student_name_input:
+        final_fig = draw_blanket(st.session_state.db, chair_name_input, v_date_input, student_name_input)
+        buf = io.BytesIO()
+        final_fig.savefig(buf, format="png", bbox_inches='tight')
+        st.download_button(label="📥 הורד תמונת וועדה", data=buf.getvalue(), 
+                         file_name=f"committee_{v_date_input.strftime('%d_%m_%Y')}.png", mime="image/png")
