@@ -6,8 +6,10 @@ import os
 from datetime import date
 import io
 
+# הגדרת דף רחב
 st.set_page_config(page_title="שמיכת תמיכה", layout="wide")
 
+# נתוני קטגוריות
 CLUSTERS = {
     "קוגניטיבי לימודי שפתי": ["הישגים לימודיים", "יכולת מילולית הבעה והפשטה", "הבנה וחשיבה"],
     "עצמאות והתארגנות": ["למידה עצמאית", "תלמידאות ציוד התארגנות", "ניהול עצמי"],
@@ -24,7 +26,7 @@ VOTER_CONFIGS = {
 
 if 'db' not in st.session_state: st.session_state.db = {}
 
-def draw_blanket(data_dict, chair_name="", v_date="", student_name="", size=(5.4, 5.4)):
+def draw_blanket(data_dict, chair_name="", v_date=None, student_name="", size=(5.4, 5.4)):
     bg_path = os.path.join(os.path.dirname(__file__), "blanket_base.png")
     if not os.path.exists(bg_path): return None
     
@@ -34,14 +36,19 @@ def draw_blanket(data_dict, chair_name="", v_date="", student_name="", size=(5.4
     ax.imshow(img)
     ax.axis('off')
 
-    # תיקון עברית הפוכה לכותרת הגרף
+    # סידור תאריך בפורמט DD/MM/YYYY
+    formatted_date = v_date.strftime("%d/%m/%Y") if v_date else ""
+    
+    # תיקון עברית וכיווניות לכותרת הגרף
     rev_chair = chair_name[::-1]
     rev_student = student_name[::-1]
-    title_text = f"{v_date} | {rev_chair} :\"ר'וי"
-    if student_name:
-        title_text = f"{rev_student} :ה/דימלת | " + title_text
     
-    ax.set_title(title_text, fontsize=10, pad=10, loc='center', fontweight='bold')
+    # בניית הכותרת עם סימני פיסוק מתוקנים לתצוגה בגרף
+    title_text = f"{formatted_date}  |  {rev_chair} :\"ר'וי"
+    if student_name:
+        title_text = f"{rev_student} :ה/דימלת  |  " + title_text
+    
+    ax.set_title(title_text, fontsize=10, pad=15, loc='center', fontweight='bold')
 
     center_x, center_y = (w / 2) - (w * 0.017), (h / 2) + (h * 0.010)
     max_r = h * 0.308
@@ -62,12 +69,12 @@ def draw_blanket(data_dict, chair_name="", v_date="", student_name="", size=(5.4
         ax.plot(x, y, color=VOTER_CONFIGS[name], linewidth=2, marker='o', markersize=3)
     return fig
 
-# ממשק עליון
+# --- ממשק משתמש עליון ---
 col_role, col_info = st.columns([1, 2])
 with col_info:
     c1, c2 = st.columns(2)
-    chair_name = c1.text_input("שם היו\"ר:", value="אלעזר")
-    v_date = c2.date_input("תאריך הוועדה:", value=date.today())
+    chair_name_input = c1.text_input("שם היו\"ר:", value="אלעזר")
+    v_date_input = c2.date_input("תאריך הוועדה:", value=date.today())
 
 with col_role:
     role = st.selectbox("תפקיד נוכחי:", ["צופה", "יו\"ר", "נ. פיקוח", "נ. רשות", "נציג שפ\"ח", "נ. הורים"])
@@ -90,7 +97,7 @@ if role != "צופה":
 
     with col_preview:
         st.markdown("<center>🔍 תצוגה מקדימה אישית</center>", unsafe_allow_html=True)
-        preview_fig = draw_blanket({role: current_values}, chair_name, v_date)
+        preview_fig = draw_blanket({role: current_values}, chair_name_input, v_date_input)
         if preview_fig: st.pyplot(preview_fig)
 
 if st.session_state.db:
@@ -98,15 +105,15 @@ if st.session_state.db:
     _, center_col, _ = st.columns([1, 2, 1])
     with center_col:
         st.markdown("<center><h2>📊 לוח הוועדה המשותף</h2></center>", unsafe_allow_html=True)
-        main_fig = draw_blanket(st.session_state.db, chair_name, v_date)
+        main_fig = draw_blanket(st.session_state.db, chair_name_input, v_date_input)
         if main_fig:
             st.pyplot(main_fig)
             st.write("---")
             st.subheader("💾 שמירה למחשב האישי")
             student_name_input = st.text_input("הזן שם תלמיד (לשמירה מקומית בלבד):")
             if student_name_input:
-                final_fig = draw_blanket(st.session_state.db, chair_name, v_date, student_name_input)
+                final_fig = draw_blanket(st.session_state.db, chair_name_input, v_date_input, student_name_input)
                 buf = io.BytesIO()
                 final_fig.savefig(buf, format="png", bbox_inches='tight')
                 st.download_button(label="📥 הורד תמונת וועדה", data=buf.getvalue(), 
-                                 file_name=f"committee_{v_date}.png", mime="image/png")
+                                 file_name=f"committee_{student_name_input}_{v_date_input.strftime('%d_%m_%Y')}.png", mime="image/png")
