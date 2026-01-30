@@ -7,10 +7,10 @@ from datetime import date
 import io
 import time
 
-# הגדרות תצוגה מקדימה ואיקון לאתר
+# הגדרות תצוגה מקדימה ואיקון קבוע מה-GitHub Raw
 st.set_page_config(
     page_title="מערכת שמיכת תמיכה - וועדות זכאות ואפיון",
-    page_icon="favicon.png",
+    page_icon="https://raw.githubusercontent.com/Avitalchocla/support-blanket/main/favicon.png",
     layout="wide"
 )
 
@@ -196,5 +196,6 @@ if current_committee_db:
         final_fig.savefig(buf, format="png", bbox_inches='tight')
         st.download_button(label="📥 הורד תמונת וועדה", data=buf.getvalue(), 
                          file_name=f"committee_{student_name_input}_{v_date_input.strftime('%d_%m_%Y')}.png", mime="image/png")
+
 
 
