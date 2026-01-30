@@ -26,7 +26,7 @@ def play_gong():
 # אתחול רשימת יושבי ראש בזיכרון
 if 'chair_list' not in st.session_state:
     st.session_state.chair_list = [
-        "בחר שם מהרשימה", "אינה גמרמן ברון", "אליה טל", "אלעזר קצברוג", "ברכה גברא", 
+        "בחר שם מהרשימה", "אינה גמרמן ברון", "אליה טל", "אלעזר קצבורג", "ברכה גברא", 
         "גלית לוי", "דיאנה ג'קסון", "הילה ברון", "חני קיסוס", "טלי בארי מאיר", 
         "יעל איילון", "יעל פרידמן", "יפית שמואלי", "ליטל דגול", "לימור זרחיה", 
         "לילך ביטי", "מורן שחם", "מיכל זינגבויים", "מיכל ליפקין", "מיכל פרנקל", 
@@ -196,4 +196,5 @@ if current_committee_db:
         final_fig.savefig(buf, format="png", bbox_inches='tight')
         st.download_button(label="📥 הורד תמונת וועדה", data=buf.getvalue(), 
                          file_name=f"committee_{student_name_input}_{v_date_input.strftime('%d_%m_%Y')}.png", mime="image/png")
+
 
