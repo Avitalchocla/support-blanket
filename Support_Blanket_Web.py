@@ -115,6 +115,7 @@ if role != "צופה":
                     current_values.append(val)
         if st.button("🔄 עדכן בלוח המשותף", use_container_width=True):
             st.session_state.db[role] = current_values
+            st.toast("הנתונים עודכנו בהצלחה", icon="✅")
             st.rerun()
 
     with col_preview:
