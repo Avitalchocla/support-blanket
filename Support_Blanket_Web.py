@@ -19,21 +19,20 @@ CLUSTERS = {
     "תפקוד רגשי": ["ויסות רגשי", "לשתף ולהעזר באחר", "הכלת תסכול"]
 }
 
-# הגדרת תפקידים וצבעים (ללא גרשיים ב-"יור")
+# הגדרת תפקידים וצבעים (עם גרשיים לממשק)
 VOTER_CONFIGS = {
-    "יור": "#2c3e50", 
+    "יו\"ר": "#2c3e50", 
     "נ. פיקוח": "#FF0000", 
     "נ. רשות": "#8e44ad", 
     "נציג שפ\"ח": "#27ae60", 
     "נ. הורים": "#FF00FF"
 }
 
-# אתחול מאגר הנתונים בזיכרון
 if 'db' not in st.session_state: 
     st.session_state.db = {}
 
 def draw_blanket(data_dict, chair_name="", v_date=None, student_name="", size=(5.4, 5.4)):
-    bg_path = os.path.join(os.path.dirname(__file__), "blanket_base.png")
+    bg_path = os.path.join(os.path.dirname(__name__), "blanket_base.png")
     if not os.path.exists(bg_path): return None
     
     img = Image.open(bg_path)
@@ -42,17 +41,17 @@ def draw_blanket(data_dict, chair_name="", v_date=None, student_name="", size=(5
     ax.imshow(img)
     ax.axis('off')
 
-    # פורמט תאריך DD/MM/YYYY
+    # פורמט תאריך ישראלי
     formatted_date = v_date.strftime("%d/%m/%Y") if v_date else ""
     
-    # היפוך טקסט עבור Matplotlib
+    # היפוך טקסט ותיקון גרשיים ורווחים
     rev_chair = chair_name[::-1]
     rev_student = student_name[::-1]
     
-    # בניית הכותרת ללא גרשיים
-    title_text = f"{formatted_date}  |  {rev_chair} :רוי"
+    # כותרת עם "יו"ר" מתוקן, רווח לפני הנקודתיים ותאריך
+    title_text = f"{formatted_date}  |  {rev_chair}  :\"ר'וי"
     if student_name:
-        title_text = f"{rev_student} :ה/דימלת  |  " + title_text
+        title_text = f"{rev_student}  :ה/דימלת  |  " + title_text
     
     ax.set_title(title_text, fontsize=10, pad=15, loc='center', fontweight='bold')
 
@@ -83,28 +82,27 @@ def draw_blanket(data_dict, chair_name="", v_date=None, student_name="", size=(5
 col_role, col_info = st.columns([1, 2])
 with col_info:
     c1, c2 = st.columns(2)
-    chair_name_input = c1.text_input("שם היור:", value="אלעזר")
+    chair_name_input = c1.text_input("שם היו\"ר:", value="אלעזר")
     v_date_input = c2.date_input("תאריך הוועדה:", value=date.today(), format="DD/MM/YYYY")
 
 with col_role:
-    role = st.selectbox("תפקיד נוכחי:", ["צופה", "יור", "נ. פיקוח", "נ. רשות", "נציג שפ\"ח", "נ. הורים"])
+    role = st.selectbox("תפקיד נוכחי:", ["צופה", "יו\"ר", "נ. פיקוח", "נ. רשות", "נציג שפ\"ח", "נ. הורים"])
 
 st.divider()
 
-# --- תצוגת מקרא צבעים קבועה בדף ---
+# סרגל צד עם מקרא וכפתור איפוס
 with st.sidebar:
     st.markdown("### 🎨 מקרא צבעי הוועדה")
     for member, color in VOTER_CONFIGS.items():
         st.markdown(f"<span style='color:{color}; font-weight:bold;'>■</span> {member}", unsafe_allow_html=True)
     
-    # כפתור איפוס שמופיע רק ליור בסרגל הצד
-    if role == "יור":
+    if role == "יו\"ר":
         st.write("---")
         if st.button("🗑️ איפוס לוח (לכל המשתתפים)"):
             st.session_state.db = {}
             st.rerun()
 
-# --- לוגיקת מצבים ---
+# --- לוגיקת הזנה ---
 if role != "צופה":
     col_input, col_preview = st.columns([1.2, 2])
     with col_input:
@@ -143,7 +141,7 @@ if role != "צופה" and st.session_state.db:
         main_fig = draw_blanket(st.session_state.db, chair_name_input, v_date_input)
         if main_fig: st.pyplot(main_fig)
 
-# אפשרות שמירה (רק אם יש נתונים)
+# שמירה למחשב
 if st.session_state.db:
     st.write("---")
     st.subheader("💾 שמירה למחשב האישי")
