@@ -49,7 +49,7 @@ def draw_blanket(data_dict, chair_name="", v_date=None, student_name="", size=(5
     rev_student = student_name[::-1]
     
     # כותרת עם "יו"ר" מתוקן, רווח לפני הנקודתיים ותאריך
-    title_text = f"{formatted_date}  |  {rev_chair}  :\"ר'וי"
+    title_text = f"{formatted_date}  |  {rev_chair}  \u200f: יו\"ר"
     if student_name:
         title_text = f"{rev_student}  :ה/דימלת  |  " + title_text
     
