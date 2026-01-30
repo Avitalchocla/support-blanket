@@ -116,7 +116,7 @@ if role != "צופה":
         if st.button("🔄 עדכן בלוח המשותף", use_container_width=True):
             st.session_state.db[role] = current_values
             st.toast("הנתונים עודכנו בהצלחה", icon="✅")
-            st.rerun()
+            st.stop()
 
     with col_preview:
         st.markdown("<center>🔍 תצוגה מקדימה אישית</center>", unsafe_allow_html=True)
@@ -153,3 +153,4 @@ if st.session_state.db:
         final_fig.savefig(buf, format="png", bbox_inches='tight')
         st.download_button(label="📥 הורד תמונת וועדה", data=buf.getvalue(), 
                          file_name=f"committee_{student_name_input}_{v_date_input.strftime('%d_%m_%Y')}.png", mime="image/png")
+
