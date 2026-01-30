@@ -2,7 +2,7 @@ name: Wake Up Streamlit App
 
 on:
   schedule:
-    # רץ כל יום בשעה 08:00 בבוקר (לפי שעון UTC)
+    # רץ כל יום בשעה 06:00 בבוקר (לפי שעון UTC)
     - cron: '0 6 * * *'
   workflow_dispatch: # מאפשר לך להפעיל את זה ידנית בלחיצת כפתור
 
