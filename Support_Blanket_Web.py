@@ -58,7 +58,7 @@ def draw_blanket(data_dict, chair_name="", v_date=None, student_name="", size=(5
     formatted_date = v_date.strftime("%d/%m/%Y") if v_date else ""
     rev_chair = chair_name[::-1]
     rev_student = student_name[::-1]
-    title_text = f"{formatted_date}  |  {rev_chair}  :\"ר'וי"
+    title_text = f"{formatted_date}  |  {rev_chair}  : ר״וי"
     if student_name:
         title_text = f"{rev_student}  :ה/דימלת  |  " + title_text
     
@@ -191,3 +191,4 @@ if current_committee_db:
         final_fig.savefig(buf, format="png", bbox_inches='tight')
         st.download_button(label="📥 הורד תמונת וועדה", data=buf.getvalue(), 
                          file_name=f"committee_{student_name_input}_{v_date_input.strftime('%d_%m_%Y')}.png", mime="image/png")
+
