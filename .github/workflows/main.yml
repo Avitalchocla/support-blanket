@@ -1,0 +1,14 @@
+name: Wake Up Streamlit App
+
+on:
+  schedule:
+    # רץ כל יום בשעה 08:00 בבוקר (לפי שעון UTC)
+    - cron: '0 6 * * *'
+  workflow_dispatch: # מאפשר לך להפעיל את זה ידנית בלחיצת כפתור
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping Streamlit App
+        run: curl -I https://support-blanket-9nmfwvzaohhmqgzezpkfoa.streamlit.app
