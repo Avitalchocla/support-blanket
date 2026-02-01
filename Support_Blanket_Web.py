@@ -21,18 +21,13 @@ def calculate_clean_average(values):
         return 0
     return round(sum(relevant_vals) / len(relevant_vals), 2)
 
-# פונקציה להשמעת צליל עדכון (צליל נעים וקצר)
+# פונקציה להשמעת צליל עדכון
 def play_success_chime():
-    # שימוש בצליל הודעה נעים
     audio_url = "https://assets.mixkit.co/active_storage/sfx/2358/2358-preview.mp3"
-    audio_html = f"""
-        <audio autoplay>
-            <source src="{audio_url}" type="audio/mpeg">
-        </audio>
-    """
+    audio_html = f"""<audio autoplay><source src="{audio_url}" type="audio/mpeg"></audio>"""
     st.markdown(audio_html, unsafe_allow_html=True)
 
-# אתחול רשימת יושבי ראש המלאה בזיכרון
+# אתחול רשימת יושבי ראש המלאה
 if 'chair_list' not in st.session_state:
     st.session_state.chair_list = [
         "בחר שם מהרשימה", "אינה גמרמן ברון", "אליה טל", "אלעזר קצברוג", "ברכה גברא", 
@@ -65,7 +60,6 @@ if 'show_averages_to_viewer' not in st.session_state:
 def draw_blanket(data_dict, chair_name="", v_date=None, student_name="", size=(5.4, 5.4)):
     bg_path = os.path.join(os.path.dirname(__file__), "blanket_base.png")
     if not os.path.exists(bg_path): return None
-    
     img = Image.open(bg_path)
     w, h = img.size
     fig, ax = plt.subplots(figsize=size)
@@ -73,11 +67,9 @@ def draw_blanket(data_dict, chair_name="", v_date=None, student_name="", size=(5
     ax.axis('off')
 
     formatted_date = v_date.strftime("%d/%m/%Y") if v_date else ""
-    rev_chair = chair_name[::-1]
-    rev_student = student_name[::-1]
-    title_text = f"{formatted_date}  |  {rev_chair}  : ר\"וי"
+    title_text = f"{formatted_date}  |  {chair_name[::-1]}  : ר\"וי"
     if student_name:
-        title_text = f"{rev_student}  :ה/דימלת  |  " + title_text
+        title_text = f"{student_name[::-1]}  :ה/דימלת  |  " + title_text
     
     ax.set_title(title_text, fontsize=10, pad=15, loc='center', fontweight='bold')
 
@@ -141,24 +133,24 @@ if role != "צופה":
         
         if st.button("🔄 עדכן בלוח המשותף", use_container_width=True):
             st.session_state.db[chair_name_input][role] = current_values
-            play_success_chime() # כאן מופעל הצליל הנחמד
-            st.toast("הנתונים נשלחו!", icon="🔔")
-            time.sleep(1)
+            play_success_chime()
             st.rerun()
 
         if role == "יו\"ר":
             st.markdown("---")
-            st.write("**ממוצעי חברים:**")
+            st.subheader("📊 סיכום ממוצעים (ליו\"ר)")
             all_avgs = []
             for member, vals in current_committee_db.items():
                 m_avg = calculate_clean_average(vals)
-                st.write(f"{member}: {m_avg}")
+                st.write(f"**{member}:** {m_avg}")
                 all_avgs.append(m_avg)
             
             if all_avgs:
-                total_avg = round(sum(all_avgs)/len(all_avgs), 2)
-                st.write(f"**ממוצע משוקלל: {total_avg}**")
-                if st.button("📢 הצג/הסתר ממוצעים לצופה"):
+                total_weighted_avg = round(sum(all_avgs)/len(all_avgs), 2)
+                st.markdown(f"### 🎯 ממוצע משוקלל של כולם: `{total_weighted_avg}`")
+                
+                label = "הסתר ממוצעים מהצופה" if st.session_state.show_averages_to_viewer[chair_name_input] else "הצג ממוצעים לצופה"
+                if st.button(label):
                     st.session_state.show_averages_to_viewer[chair_name_input] = not st.session_state.show_averages_to_viewer[chair_name_input]
                     st.rerun()
 
@@ -167,17 +159,26 @@ if role != "צופה":
         if preview_fig: st.pyplot(preview_fig)
 
 else: # מצב צופה
-    _, center_col, _ = st.columns([1, 2, 1])
+    st.markdown(f"<center><h2>📊 לוח משותף: {chair_name_input}</h2></center>", unsafe_allow_html=True)
+    _, center_col, _ = st.columns([1, 3, 1])
     with center_col:
-        st.markdown(f"<center><h2>📊 לוח משותף: {chair_name_input}</h2></center>", unsafe_allow_html=True)
         main_fig = draw_blanket(current_committee_db, chair_name_input, v_date_input)
         if main_fig: st.pyplot(main_fig)
         
-        if st.session_state.show_averages_to_viewer.get(chair_name_input, False):
+        # תצוגת ממוצעים לצופה (רק באישור יו"ר)
+        if st.session_state.show_averages_to_viewer.get(chair_name_input, False) and current_committee_db:
             st.write("---")
-            m_cols = st.columns(len(current_committee_db) if current_committee_db else 1)
+            all_voter_avgs = [calculate_clean_average(v) for v in current_committee_db.values()]
+            
+            # יצירת שורת מטריקות
+            m_cols = st.columns(len(current_committee_db) + 1)
             for i, (member, vals) in enumerate(current_committee_db.items()):
                 m_cols[i].metric(member, calculate_clean_average(vals))
+            
+            # הממוצע המשוקלל בסוף השורה
+            if all_voter_avgs:
+                final_avg = round(sum(all_voter_avgs)/len(all_voter_avgs), 2)
+                m_cols[-1].metric("🌟 ממוצע משוקלל", final_avg)
 
 # שמירה
 if current_committee_db:
